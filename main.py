@@ -1,26 +1,16 @@
-from flask import Flask, request
-import json
+import requests
 
-app = Flask(__name__)
-user_states = {}
-
-VERIFY_TOKEN = "sandwichtoken"
-
-@app.route("/webhook", methods=["GET"])
-def verify():
-    mode = request.args.get("hub.mode")
-    token = request.args.get("hub.verify_token")
-    challenge = request.args.get("hub.challenge")
-
-    if mode == "subscribe" and token == VERIFY_TOKEN:
-        return challenge, 200
-    else:
-        return "Verification failed", 403
+ACCESS_TOKEN = "YOUR_WHATSAPP_TOKEN"
+PHONE_NUMBER_ID = "YOUR_PHONE_NUMBER_ID"
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
     data = request.json
     print("Incoming message:", json.dumps(data, indent=2))
+
+    # Safety check
+    if "messages" not in data["entry"][0]["changes"][0]["value"]:
+        return "ok", 200
 
     user_number = data['entry'][0]['changes'][0]['value']['messages'][0]['from']
     msg_text = data['entry'][0]['changes'][0]['value']['messages'][0]['text']['body'].strip().lower()
@@ -49,14 +39,19 @@ def webhook():
     else:
         reply = "Say 'Hi' to start your order."
 
-    response = {
+    # SEND MESSAGE TO WHATSAPP API
+    url = f"https://graph.facebook.com/v18.0/{PHONE_NUMBER_ID}/messages"
+    headers = {
+        "Authorization": f"Bearer {ACCESS_TOKEN}",
+        "Content-Type": "application/json"
+    }
+    payload = {
         "messaging_product": "whatsapp",
         "to": user_number,
         "type": "text",
         "text": {"body": reply}
     }
+    r = requests.post(url, headers=headers, json=payload)
+    print("Message sent:", r.status_code, r.text)
 
-    return json.dumps(response), 200
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    return "ok", 200

@@ -1,7 +1,7 @@
 import os
 import requests
 from flask import Flask, request
-from models import Session, Order
+from models import Session, Order  # Make sure you have this models.py set up correctly
 
 app = Flask(__name__)
 
@@ -110,4 +110,4 @@ def send_reply(phone_number, message):
     print("Sent:", response.status_code, response.text)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, host="0.0.0.0")

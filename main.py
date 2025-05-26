@@ -1,75 +1,113 @@
-from flask import Flask, request
-import json
+import os
 import requests
+from flask import Flask, request
+from models import Session, Order
 
 app = Flask(__name__)
+
+VERIFY_TOKEN = "test"
+WHATSAPP_TOKEN = os.getenv("WHATSAPP_TOKEN")
+WHATSAPP_PHONE_ID = os.getenv("WHATSAPP_PHONE_ID")
+
 user_states = {}
 
-VERIFY_TOKEN = "sandwichtoken"
+@app.route("/")
+def home():
+    return "Sandwich Bot is live!"
 
-@app.route("/webhook", methods=["GET"])
-def verify():
-    mode = request.args.get("hub.mode")
-    token = request.args.get("hub.verify_token")
-    challenge = request.args.get("hub.challenge")
-
-    if mode == "subscribe" and token == VERIFY_TOKEN:
-        return challenge, 200
-    else:
-        return "Verification failed", 403
-
-@app.route("/webhook", methods=["POST"])
+@app.route("/webhook", methods=["GET", "POST"])
 def webhook():
-    data = request.json
-    print("Incoming message:", json.dumps(data, indent=2))
+    if request.method == "GET":
+        if request.args.get("hub.verify_token") == VERIFY_TOKEN:
+            return request.args.get("hub.challenge")
+        return "Invalid verify token", 403
 
+    data = request.get_json()
     try:
-        message = data['entry'][0]['changes'][0]['value']['messages'][0]
-        user_number = message['from']
-        msg_text = message['text']['body'].strip().lower()
-    except (KeyError, IndexError):
-        return "No message found", 200
+        entry = data["entry"][0]
+        changes = entry["changes"][0]
+        value = changes["value"]
+        messages = value.get("messages")
+        if messages:
+            message = messages[0]
+            user_number = message["from"]
+            msg_text = message["text"]["body"].strip().lower()
 
+            reply = handle_message(user_number, msg_text)
+            send_reply(user_number, reply)
+    except Exception as e:
+        print("Error handling message:", e)
+    return "ok", 200
+
+def handle_message(user_number, msg_text):
     step = user_states.get(user_number, "start")
 
     if step == "start":
-        reply = "Welcome to Sandwich Bot! 🥪\nWould you like to order:\n1. Breakfast\n2. Lunch"
-        user_states[user_number] = "choose_meal"
+        session = Session()
+        last_order = session.query(Order).filter_by(user_number=user_number).order_by(Order.id.desc()).first()
+        session.close()
+
+        if last_order:
+            user_states[user_number] = "repeat_or_change"
+            return f"Welcome back! 🥪 Last time you ordered:\nBread: {last_order.bread}\nFilling: {last_order.filling}\n\nReply 'same' to repeat or 'change' to start a new one."
+        else:
+            user_states[user_number] = "choose_meal"
+            return "Welcome to Sandwich Bot! 🥪\nWould you like to order:\n1. Breakfast\n2. Lunch"
+
+    elif step == "repeat_or_change":
+        if msg_text == "same":
+            return "👍 Your last order will be repeated today!"
+        elif msg_text == "change":
+            user_states[user_number] = "choose_meal"
+            return "Would you like to order:\n1. Breakfast\n2. Lunch"
+        else:
+            return "Please type 'same' to repeat or 'change' to create a new order."
 
     elif step == "choose_meal":
-        if msg_text == "1" or msg_text == "2":
-            reply = "Choose your bread:\n1. White\n2. Wholegrain\n3. Rye"
+        if msg_text in ["1", "breakfast"]:
             user_states[user_number] = "choose_bread"
+            return "Great! Choose your bread:\n1. White\n2. Wheat\n3. Multigrain"
+        elif msg_text in ["2", "lunch"]:
+            user_states[user_number] = "choose_bread"
+            return "Great! Choose your bread:\n1. Baguette\n2. Sourdough\n3. Rye"
         else:
-            reply = "Please reply with 1 for Breakfast or 2 for Lunch"
+            return "Please choose 1 for Breakfast or 2 for Lunch."
 
     elif step == "choose_bread":
-        reply = "Pick a filling:\n1. Egg\n2. Bacon\n3. Cheese"
+        user_states[user_number + "_bread"] = msg_text
         user_states[user_number] = "choose_filling"
+        return "Yum! Now choose your filling:\n1. Egg\n2. Chicken\n3. Veggie Delight"
 
     elif step == "choose_filling":
-        reply = "Great choice! 🧾 Your sandwich order is received.\nWe’ll contact you soon to confirm delivery."
+        bread = user_states.get(user_number + "_bread", "Unknown")
+        filling = msg_text
+
+        session = Session()
+        order = Order(user_number=user_number, bread=bread, filling=filling)
+        session.add(order)
+        session.commit()
+        session.close()
+
         user_states[user_number] = "done"
+        return f"Thanks! 🧾 Your sandwich with {bread} bread and {filling} filling is confirmed."
 
     else:
-        reply = "Say 'Hi' to start your order."
+        return "Type anything to start your sandwich order 🍞."
 
-    response = {
-        "messaging_product": "whatsapp",
-        "to": user_number,
-        "type": "text",
-        "text": {"body": reply}
-    }
-
-    whatsapp_url = "https://graph.facebook.com/v18.0/687958281065917/messages"
+def send_reply(phone_number, message):
+    url = f"https://graph.facebook.com/v19.0/{WHATSAPP_PHONE_ID}/messages"
     headers = {
-        "Authorization": "Bearer EAAsbZAJMBnzABO8NSNqAlsnnZA811Q6pJOaxO7pfp75lI8YhjncD8gL5cATxfyqUZAnmBE9PDi6i5cXdH6ZCaSOGTm7JMOHY8Y4TUhhASJZBKY3VryvNHF6TAwat10rqNLfCAT3b4YZBF6Qr7rpGa32RpVfii6G7ZBoHTUit5rNTWm5SZCGaZCk3s08NdozDER8o1HuVF0K7gQsty13wOQ1AYE6XLd5Jv3OwZD",
+        "Authorization": f"Bearer {WHATSAPP_TOKEN}",
         "Content-Type": "application/json"
     }
-
-    requests.post(whatsapp_url, headers=headers, json=response)
-
-    return json.dumps(response), 200
+    data = {
+        "messaging_product": "whatsapp",
+        "to": phone_number,
+        "type": "text",
+        "text": {"body": message}
+    }
+    response = requests.post(url, headers=headers, json=data)
+    print("Sent:", response.status_code, response.text)
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    app.run(debug=True)

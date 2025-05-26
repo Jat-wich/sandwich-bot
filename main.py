@@ -61,17 +61,14 @@ def webhook():
         "text": {"body": reply}
     }
 
-    # You must replace this with your actual WhatsApp Cloud API endpoint + token
-    whatsapp_url = "https://graph.facebook.com/v18.0/YOUR_PHONE_NUMBER_ID/messages"
+    whatsapp_url = "https://graph.facebook.com/v18.0/687958281065917/messages"
     headers = {
-        "Authorization": "Bearer YOUR_ACCESS_TOKEN",
+        "Authorization": "Bearer EAAsbZAJMBnzABO8NSNqAlsnnZA811Q6pJOaxO7pfp75lI8YhjncD8gL5cATxfyqUZAnmBE9PDi6i5cXdH6ZCaSOGTm7JMOHY8Y4TUhhASJZBKY3VryvNHF6TAwat10rqNLfCAT3b4YZBF6Qr7rpGa32RpVfii6G7ZBoHTUit5rNTWm5SZCGaZCk3s08NdozDER8o1HuVF0K7gQsty13wOQ1AYE6XLd5Jv3OwZD",
         "Content-Type": "application/json"
     }
 
-    # Uncomment this to send actual replies if you're ready:
-    # requests.post(whatsapp_url, headers=headers, json=response)
+    requests.post(whatsapp_url, headers=headers, json=response)
 
-    # For now, just return what would be sent
     return json.dumps(response), 200
 
 if __name__ == "__main__":

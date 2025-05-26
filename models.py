@@ -1,21 +1,20 @@
+# models.py
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import declarative_base, sessionmaker
 import os
 
-# Replace this with your actual database URL (Render Postgres URL or SQLite for local testing)
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///orders.db")
+DATABASE_URL = os.getenv("postgresql://sandwichbot_db_user:vQv9neKVNkQ3xaC2FfemcGamfrNLeIWs@dpg-d0qbslgdl3ps73equv3g-a/sandwichbot_db")
 
+engine = create_engine(DATABASE_URL, echo=False)
 Base = declarative_base()
-engine = create_engine(DATABASE_URL)
 Session = sessionmaker(bind=engine)
 
 class Order(Base):
     __tablename__ = "orders"
-    
+
     id = Column(Integer, primary_key=True)
     user_number = Column(String)
     bread = Column(String)
     filling = Column(String)
 
-# Create tables
 Base.metadata.create_all(engine)

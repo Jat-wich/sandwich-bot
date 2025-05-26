@@ -1,7 +1,9 @@
+
+# main.py
 import os
 import requests
 from flask import Flask, request
-from models import Session, Order  # Make sure you have this models.py set up correctly
+from models import Session, Order
 
 app = Flask(__name__)
 
@@ -92,7 +94,7 @@ def handle_message(user_number, msg_text):
         return f"Thanks! 🧾 Your sandwich with {bread} bread and {filling} filling is confirmed."
 
     else:
-        return "Type anything to start your sandwich order 🍞."
+        return "Type 'start' to start your sandwich order 🍞."
 
 def send_reply(phone_number, message):
     url = f"https://graph.facebook.com/v19.0/{WHATSAPP_PHONE_ID}/messages"
@@ -110,4 +112,4 @@ def send_reply(phone_number, message):
     print("Sent:", response.status_code, response.text)
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0")
+    app.run(debug=True)

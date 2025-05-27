@@ -3,4 +3,3 @@ gunicorn
 requests
 SQLAlchemy>=2.0.0
 python-dotenv
-python-psycopg2

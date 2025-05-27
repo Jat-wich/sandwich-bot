@@ -1,12 +1,13 @@
 # models.py
-import os
 from dotenv import load_dotenv
+load_dotenv()
+
+import os
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-load_dotenv()
-
-DATABASE_URL = os.getenv("postgres://sandwichbot_db_user:vQv9neKVNkQ3xaC2FfemcGamfrNLeIWs@dpg-d0qbslgdl3ps73equv3g-a/sandwichbot_db")
+DATABASE_URL = os.getenv("DATABASE_URL")  # ✅ CORRECT
+print("Loaded DB URL in models.py:", DATABASE_URL)
 
 
 engine = create_engine(DATABASE_URL, echo=False)

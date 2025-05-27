@@ -1,15 +1,20 @@
 
 # main.py
+from dotenv import load_dotenv
+load_dotenv()
+
 import os
 import requests
 from flask import Flask, request
 from models import Session, Order
 
+DATABASE_URL = os.getenv("DATABASE_URL")
+
 app = Flask(__name__)
 
 VERIFY_TOKEN = "test"
-WHATSAPP_TOKEN = os.getenv("EAAsbZAJMBnzABO1GVHXheG2jiZAZAkXZCZBLexvsNGk3cqvc9KkCYEkZCPqZCVpN2oWShkERt9ZAPRT5vTHdc5adPT4fjxRcnExXTbSqRIGT2ZCYy0uKMKoHxCZCG4V5g6JX9DdEsdJQgCC64fFYvMPjEJG4wn3iAdCtjfEHd9NJ2gA1UFSB7moLWkIBX9idxejHT3JzPNpfD8YyMX5FhOzwz0CqPdk4B22HoZD")
-WHATSAPP_PHONE_ID = os.getenv("687958281065917")
+WHATSAPP_TOKEN = os.getenv("WHATSAPP_TOKEN")
+WHATSAPP_PHONE_ID = os.getenv("WHATSAPP_PHONE_ID")
 
 user_states = {}
 
